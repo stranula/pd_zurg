@@ -234,6 +234,9 @@ def download(element, stream=True, query='', force=False):
                     time.sleep(0.1)
                     post('https://api.real-debrid.com/rest/1.0/torrents/selectFiles/' + str(response.id),{'files': 'all'})
                     ui_print('[realdebrid] adding uncached release: ' + release.title)
+                    # Write to CSV
+                    write_to_csv(data, release.title, actual_title)
+                    print("Writing to CSV" + CSV_FILE_PATH)
                     return True
                 except:
                     continue
