@@ -148,10 +148,10 @@ def version_check():
         architecture = get_architecture()
         os.environ['CURRENT_ARCHITECTURE'] = architecture
         if GHTOKEN:
-            repo_owner = 'debridmediamanager'
+            repo_owner = 'stranula'
             repo_name = 'zurg'               
         else:
-            repo_owner = 'debridmediamanager'
+            repo_owner = 'stranula'
             repo_name = 'zurg-testing'          
         
         if ZURGVERSION:
