@@ -224,8 +224,8 @@ def download(element, stream=True, query='', force=False):
                                 # Write to CSV
                                 write_to_csv(data, release.title, actual_title)
                                 # print("Writing to CSV " + CSV_FILE_PATH)
-                                # if not actual_title == "":
-                                #     release.title = actual_title
+                                if not actual_title == "":
+                                    release.title = actual_title
                                 return True
                 ui_print('[realdebrid] error: no streamable version could be selected for release: ' + release.title)
                 return False
