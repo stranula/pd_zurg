@@ -29,12 +29,13 @@ CSV_FILE_PATH = '/zurg/RD/catalog.csv'
 # Ensure the directory exists
 def ensure_directory_exists(file_path):
     directory = os.path.dirname(file_path)
-    print(f"Checking if directory exists: {directory}")
+    #print(f"Checking if directory exists: {directory}")
     if directory and not os.path.exists(directory):
-        print(f"Creating directory: {directory}")
+        #print(f"Creating directory: {directory}")
         os.makedirs(directory)
     else:
-        print(f"Directory already exists: {directory}")
+        #print(f"Directory already exists: {directory}")
+        pass
 
 
 # CSV Writing Function
@@ -222,7 +223,7 @@ def download(element, stream=True, query='', force=False):
                                 ui_print('[realdebrid] adding cached release: ' + release.title)
                                 # Write to CSV
                                 write_to_csv(data, release.title, actual_title)
-                                print("Writing to CSV" + CSV_FILE_PATH)
+                                # print("Writing to CSV " + CSV_FILE_PATH)
                                 # if not actual_title == "":
                                 #     release.title = actual_title
                                 return True
