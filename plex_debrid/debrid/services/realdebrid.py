@@ -50,6 +50,7 @@ def ensure_directory_exists(file_path):
         os.makedirs(directory)
     else:
         # print(f"Directory already exists: {directory}")
+        pass
 
 
 # CSV Writing Function
@@ -255,6 +256,9 @@ def download(element, stream=True, query='', force=False):
                                                 break
                                         release.files = version.files
                                         ui_print('[realdebrid] adding cached release: ' + release.title)
+                                        # Write to CSV
+                                        write_to_csv(data, release.title, actual_title)
+                                        print("Writing to CSV" + CSV_FILE_PATH)
                                         if not actual_title == "":
                                             release.title = actual_title
                                         return True
@@ -274,7 +278,7 @@ def download(element, stream=True, query='', force=False):
                     ui_print('[realdebrid] adding uncached release: ' + release.title)
                     # Write to CSV
                     write_to_csv(data, release.title, actual_title)
-                    # print("Writing to CSV" + CSV_FILE_PATH)
+                    print("Writing to CSV" + CSV_FILE_PATH)
                     return True
                 except:
                     continue
