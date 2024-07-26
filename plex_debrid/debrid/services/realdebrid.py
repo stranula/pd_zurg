@@ -25,6 +25,49 @@ def setup(cls, new=False):
     from debrid.services import setup
     setup(cls,new)
 
+# Set the CSV file path from environment variable, default to 'catalog.csv'
+CSV_FILE_PATH = '/zurg/RD/catalog.csv'
+
+# Ensure the directory exists
+def ensure_directory_exists(file_path):
+    directory = os.path.dirname(file_path)
+    #print(f"Checking if directory exists: {directory}")
+    if directory and not os.path.exists(directory):
+        #print(f"Creating directory: {directory}")
+        os.makedirs(directory)
+    else:
+        #print(f"Directory already exists: {directory}")
+        pass
+
+
+# CSV Writing Function
+def write_to_csv(data, torrent_file_name, actual_title):
+    ensure_directory_exists(CSV_FILE_PATH)
+    file_exists = os.path.isfile(CSV_FILE_PATH)
+    with open(CSV_FILE_PATH, mode='a', newline='') as file:
+        writer = csv.writer(file)
+        if not file_exists:
+            writer.writerow(['EID', 'Title', 'Type', 'Year', 'ParentEID', 'ParentTitle', 'ParentType', 'ParentYear', 'GrandParentEID', 'GrandParentTitle', 'GrandParentType', 'GrandParentYear', 'Torrent File Name', 'Actual Title'])  # header
+        row = data + [torrent_file_name, actual_title]
+        writer.writerow(row)
+
+# Extract necessary fields from element
+def extract_element_data(element):
+    eid = element.EID if hasattr(element, 'EID') else ''
+    title = element.title if hasattr(element, 'title') else ''
+    type_ = element.type if hasattr(element, 'type') else ''
+    year = element.year if hasattr(element, 'year') else ''
+    parentEID = element.parentEID if hasattr(element, 'parentEID') and element.parentEID else ''
+    parentTitle = element.parentTitle if hasattr(element, 'parentTitle') else ''
+    parentType = element.parentType if hasattr(element, 'parentType') else ''
+    parentYear = element.parentYear if hasattr(element, 'parentYear') else ''
+    grandparentEID = element.grandparentEID if hasattr(element, 'grandparentEID') and element.grandparentEID else ''
+    grandparentTitle = element.grandparentTitle if hasattr(element, 'grandparentTitle') else ''
+    grandparentType = element.grandparentType if hasattr(element, 'grandparentType') else ''
+    grandparentYear = element.grandparentYear if hasattr(element, 'grandparentYear') else ''
+    
+    return [eid, title, type_, year, parentEID, parentTitle, parentType, parentYear, grandparentEID, grandparentTitle, grandparentType, grandparentYear]
+
 # Error Log
 def logerror(response):
     if not response.status_code in [200,201,204]:
@@ -251,6 +294,9 @@ def download(element, stream=True, query='', force=False):
                     time.sleep(0.1)
                     post('https://api.real-debrid.com/rest/1.0/torrents/selectFiles/' + str(response.id),{'files': 'all'})
                     ui_print('[realdebrid] adding uncached release: ' + release.title)
+                    # Write to CSV
+                    write_to_csv(data, release.title, actual_title)
+                    print("Writing to CSV" + CSV_FILE_PATH)
                     return True
                 except:
                     continue
