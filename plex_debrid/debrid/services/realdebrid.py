@@ -1,7 +1,6 @@
 #import modules
 from base import *
 from ui.ui_print import *
-from debrid.pd_symlinks import *
 import releases
 import os
 import csv
