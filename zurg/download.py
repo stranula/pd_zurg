@@ -155,10 +155,7 @@ def version_check():
             repo_name = 'zurg-testing'          
         
         if ZURGVERSION:
-            if "nightly" in ZURGVERSION.lower():
-                release_version = ZURGVERSION
-            else:
-                release_version = ZURGVERSION if ZURGVERSION.startswith('v') else 'v' + ZURGVERSION
+            release_version = ZURGVERSION if ZURGVERSION.startswith('v') else 'v' + ZURGVERSION
             logger.info("Using release version from environment variable: %s", release_version)
         else:      
             release_version, error = get_latest_release(repo_owner, repo_name)
