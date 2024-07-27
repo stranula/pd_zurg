@@ -180,6 +180,7 @@ def download(element, stream=True, query='', force=False):
     # Extract data for CSV
     data = extract_element_data(element)
     cached = element.Releases
+    print("Cached: " + cached)
     if query == '':
         query = element.deviation()
     wanted = [query]
