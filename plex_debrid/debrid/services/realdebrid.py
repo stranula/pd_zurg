@@ -173,159 +173,126 @@ class version:
             if file.unwanted:
                 self.unwanted += 1
 
-# (required) Download Function.
-def create_symlinks_from_catalog(src_dir, dest_dir, dest_dir_movies, catalog_path, processed_items_file, ignore_processed=False):
-    catalog_data = read_catalog_csv(catalog_path)
-    
-    if ignore_processed:
-        processed_items = set()
-    else:
-        processed_items = read_processed_items(processed_items_file)
-        
-    new_processed_items = set(processed_items)
-
-    print(f"Catalog data read from {catalog_path}")
-
-    for entry in catalog_data:
-        try:
-            eid = entry['EID']
-            torrent_dir_name = entry['Torrent File Name']
-            
-            # Skip if the torrent_dir_name is in the processed items and we're not ignoring processed items
-            if not ignore_processed and torrent_dir_name in processed_items:
-                continue
-
-            title = entry['Title']
-            type_ = entry['Type']
-            year = entry['Year']
-            parent_title = entry['ParentTitle']
-            parent_type = entry['ParentType']
-            parent_year = entry['ParentYear']
-            grandparent_title = entry['GrandParentTitle']
-            grandparent_type = entry['GrandParentType']
-            grandparent_year = entry['GrandParentYear']
-            actual_title = entry['Actual Title']
-
-            # Determine the correct destination directory (movies or shows)
-            if type_ == 'movie':
-                base_title = title
-                base_year = year
-                tmdb_id = extract_id(entry['EID']) if entry['EID'] else 'unknown'
-                if f"({base_year})" in base_title:
-                    folder_name = f"{base_title} {{tmdb-{tmdb_id}}}"
-                else:
-                    folder_name = f"{base_title} ({base_year}) {{tmdb-{tmdb_id}}}"
-                target_folder = os.path.join(dest_dir_movies, folder_name)
-
-                # Ensure target folder exists
-                if not os.path.exists(target_folder):
-                    os.makedirs(target_folder, exist_ok=True)
-                    print(f"Created target folder: {target_folder}")
-
-                torrent_dir_path = find_best_match(torrent_dir_name, actual_title, src_dir)
-                if not torrent_dir_path:
-                    print(f"No matching directory found for {torrent_dir_name} or {actual_title}")
-                    continue
-                print(f"Processing torrent directory: {torrent_dir_path}")
-
-                # Find the largest file in the movie folder
-                largest_file = None
-                largest_size = 0
-                for file_name in os.listdir(torrent_dir_path):
-                    file_path = os.path.join(torrent_dir_path, file_name)
-                    if os.path.isfile(file_path):
-                        file_size = os.path.getsize(file_path)
-                        if file_size > largest_size:
-                            largest_size = file_size
-                            largest_file = file_name
-
-                if largest_file:
-                    file_ext = os.path.splitext(largest_file)[1]
-                    resolution = extract_resolution(largest_file, parent_folder_name=torrent_dir_path, file_path=os.path.join(torrent_dir_path, largest_file))
-                    target_file_name = f"{base_title}  ({base_year}) {{tmdb-{tmdb_id}}} [{resolution}]{file_ext}"
-                    target_file_name = clean_filename(target_file_name)
-                    target_file_path = os.path.join(target_folder, target_file_name)
-                    
-                    largest_file_path = os.path.join(torrent_dir_path, largest_file)
-                    if not os.path.exists(target_file_path):
-                        try:
-                            # Create relative symlink
-                            relative_source_path = os.path.relpath(largest_file_path, os.path.dirname(target_file_path))
-                            os.symlink(relative_source_path, target_file_path)
-                            print(f"Created relative symlink: {target_file_path} -> {relative_source_path}")
-                        except OSError as e:
-                            print(f"Error creating relative symlink: {e}")
-                    else:
-                        print(f"Symlink already exists: {target_file_path}")
-
-            else:
-                # TV show handling code
-                base_title = grandparent_title if grandparent_title else parent_title if parent_title else title
-                base_year = grandparent_year if grandparent_year else parent_year if parent_year else year
-                tmdb_id = extract_id(entry.get('GrandParentEID')) if entry.get('GrandParentEID') else extract_id(entry.get('ParentEID')) if entry.get('ParentEID') else extract_id(entry.get('EID')) if entry.get('EID') else 'unknown'
-
-                if f"({base_year})" in base_title:
-                    folder_name = f"{base_title} {{tmdb-{tmdb_id}}}"
-                else:
-                    folder_name = f"{base_title} ({base_year}) {{tmdb-{tmdb_id}}}"
-                target_folder = os.path.join(dest_dir, folder_name)
-
-                if not os.path.exists(target_folder):
-                    try:
-                        os.makedirs(target_folder)
-                        print(f"Created target folder: {target_folder}")
-                    except OSError as e:
-                        print(f"Error creating target folder: {e}")
-                        continue
-
-                torrent_dir_path = find_best_match(torrent_dir_name, actual_title, src_dir)
-                if not torrent_dir_path:
-                    print(f"No matching directory found for {torrent_dir_name} or {actual_title}")
-                    continue
-                print(f"Processing torrent directory: {torrent_dir_path}")
-
-                for file_name in os.listdir(torrent_dir_path):
-                    file_path = os.path.join(torrent_dir_path, file_name)
-                    print(f"Processing file: {file_path}")
-
-                    if os.path.isfile(file_path):
-                        file_ext = os.path.splitext(file_name)[1]
-
-                        season, episode = extract_season_episode(file_name)
-                        if not (season and episode):
-                            print(f"Skipping file (no season/episode info): {file_name}")
-                            continue
-
-                        season_folder = f"Season {season}"
-                        episode_identifier = f"S{season}E{episode}"
-
-                        resolution = extract_resolution(file_name, parent_folder_name=torrent_dir_path, file_path=file_path)
-                        target_file_name = f"{base_title} ({base_year}) {{tmdb-{tmdb_id}}} - {episode_identifier} [{resolution}]{file_ext}"
-
-                        target_folder_season = os.path.join(target_folder, season_folder)
-                        if not os.path.exists(target_folder_season):
-                            os.makedirs(target_folder_season, exist_ok=True)
-
-                        target_file_path = os.path.join(target_folder_season, target_file_name)
-                        target_file_name = clean_filename(target_file_name)
-
-                        if not os.path.exists(file_path):
-                            print(f"Source file does not exist: {file_path}")
-                        elif not os.path.exists(target_file_path):
+def download(element, stream=True, query='', force=False):
+    # Print details of element
+    # print_element_details(element)
+    # Extract data for CSV
+    data = extract_element_data(element)
+    cached = element.Releases
+    print("Cached: ")
+    print(cached)
+    if query == '':
+        query = element.deviation()
+    wanted = [query]
+    if not isinstance(element, releases.release):
+        wanted = element.files()
+    for release in cached[:]:
+        # if release matches query
+        if regex.match(query, release.title, regex.I) or force:
+            if stream:
+                release.size = 0
+                for version in release.files:
+                    if hasattr(version, 'files'):
+                        if len(version.files) > 0 and version.wanted > len(wanted) / 2 or force:
+                            cached_ids = []
+                            for file in version.files:
+                                cached_ids += [file.id]
+                            # post magnet to real debrid
+                            max_retries = 3
+                            retry_delay = 5 # seconds
+                            for attempt in range(max_retries):
+                                try:
+                                    response = post('https://api.real-debrid.com/rest/1.0/torrents/addMagnet', {'magnet': str(release.download[0])})
+                                    if hasattr(response, 'error_code') and response.error_code == 25:
+                                        retry = f'Error adding magnet due to ({response.error_code} service_unavailable)'
+                                        print(f'[{str(datetime.datetime.now().strftime("%d/%m/%y %H:%M:%S"))}] [realdebrid] {retry}')
+                                        continue
+                                    else:
+                                        if hasattr(response, 'id'):
+                                            torrent_id = str(response.id)
+                                        else:
+                                            print(f'[{str(datetime.datetime.now().strftime("%d/%m/%y %H:%M:%S"))}] [realdebrid] error: No "id" in response for release: {release.title}')
+                                            continue
+                                except Exception as e:
+                                    print(f'[{str(datetime.datetime.now().strftime("%d/%m/%y %H:%M:%S"))}] [realdebrid] error: could not add magnet for release. ({e})')
+                                    if hasattr(e, 'response') and hasattr(e.response, 'status_code'):
+                                        if e.response.status_code == 429:
+                                            print(f'[{str(datetime.datetime.now().strftime("%d/%m/%y %H:%M:%S"))}] [realdebrid] Rate limit exceeded')
+                                    continue
                             try:
-                                # Create relative symlink
-                                relative_source_path = os.path.relpath(file_path, os.path.dirname(target_file_path))
-                                os.symlink(relative_source_path, target_file_path)
-                                print(f"Created relative symlink: {target_file_path} -> {relative_source_path}")
-                            except OSError as e:
-                                print(f"Error creating relative symlink: {e}")
-                        else:
-                            print(f"Symlink already exists: {target_file_path}")
+                                response = post('https://api.real-debrid.com/rest/1.0/torrents/addMagnet',{'magnet': str(release.download[0])})
+                                if hasattr(response, 'id'):
+                                    torrent_id = str(response.id)
+                                else:
+                                    print(f'[{str(datetime.datetime.now().strftime("%d/%m/%y %H:%M:%S"))}] [realdebrid] error: No "id" in response for release: {release.title}')
+                                    continue
+                            except:
+                                ui_print('[realdebrid] error: could not add magnet for release: ' + release.title, ui_settings.debug)
+                                continue
+                            response = post('https://api.real-debrid.com/rest/1.0/torrents/selectFiles/' + torrent_id, {'files': str(','.join(cached_ids))})
+                            for attempt in range(max_retries):
+                                response = get('https://api.real-debrid.com/rest/1.0/torrents/info/' + torrent_id)
+                                actual_title = ""
 
-            new_processed_items.add(torrent_dir_name)
-        except Exception as e:
-            print(f"Error processing entry: {e}")
-
+                                if hasattr(response, 'links'):
+                                    if len(response.links) == len(cached_ids):
+                                        actual_title = response.filename
+                                        release.download = response.links
+                                    else:
+                                        if response.status in ["queued","magnet_conversion","downloading","uploading"]:
+                                            if hasattr(element, "version"):
+                                                debrid_uncached = True
+                                                for i, rule in enumerate(element.version.rules):
+                                                    if (rule[0] == "cache status") and (rule[1] == 'requirement' or rule[1] == 'preference') and (rule[2] == "cached"):
+                                                        debrid_uncached = False
+                                                if debrid_uncached:
+                                                    import debrid as db
+                                                    release.files = version.files
+                                                    db.downloading += [element.query() + ' [' + element.version.name + ']']
+                                                    ui_print('[realdebrid] adding uncached release: ' + release.title)
+                                                    return True
+                                        else:
+                                            ui_print('[realdebrid] error: selecting this cached file combination returned a .rar archive - trying a different file combination.', ui_settings.debug)
+                                            delete('https://api.real-debrid.com/rest/1.0/torrents/delete/' + torrent_id)
+                                            continue
+                                    if len(release.download) > 0:
+                                        for link in release.download:
+                                            try:
+                                                response = post('https://api.real-debrid.com/rest/1.0/unrestrict/link',{'link': link})
+                                            except Exception as e:
+                                                print(f'[{str(datetime.datetime.now().strftime("%d/%m/%y %H:%M:%S"))}] Error: {e}')
+                                                break
+                                        release.files = version.files
+                                        ui_print('[realdebrid] adding cached release: ' + release.title)
+                                        # Write to CSV
+                                        write_to_csv(data, release.title, actual_title)
+                                        print("Writing to CSV" + CSV_FILE_PATH)
+                                        if not actual_title == "":
+                                            release.title = actual_title
+                                        return True
+                                elif response.error_code == 34:
+                                    time.sleep(retry_delay)
+                                    retry_delay += 1
+                                    continue
+                                else:
+                                    print(f'[{str(datetime.datetime.now().strftime("%d/%m/%y %H:%M:%S"))}] [realdebrid] {response.error}')
+                ui_print('[realdebrid] error: no streamable version could be selected for release: ' + release.title)
+                return False
+            else:
+                try:
+                    response = post('https://api.real-debrid.com/rest/1.0/torrents/addMagnet',{'magnet': release.download[0]})
+                    time.sleep(0.1)
+                    post('https://api.real-debrid.com/rest/1.0/torrents/selectFiles/' + str(response.id),{'files': 'all'})
+                    ui_print('[realdebrid] adding uncached release: ' + release.title)
+                    # Write to CSV
+                    write_to_csv(data, release.title, actual_title)
+                    print("Writing to CSV" + CSV_FILE_PATH)
+                    return True
+                except:
+                    continue
+        else:
+            ui_print('[realdebrid] error: rejecting release: "' + release.title + '" because it doesn't match the allowed deviation', ui_settings.debug)
+    return False
     write_processed_items(processed_items_file, new_processed_items)
 
 # (required) Check Function
