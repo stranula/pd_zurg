@@ -291,7 +291,7 @@ def download(element, stream=True, query='', force=False):
                 except:
                     continue
         else:
-            ui_print('[realdebrid] error: rejecting release: "' + release.title + '" because it doesn't match the allowed deviation', ui_settings.debug)
+            ui_print('[realdebrid] error: rejecting release: "' + release.title + '" because it doesn\'t match the allowed deviation', ui_settings.debug)
     return False
     write_processed_items(processed_items_file, new_processed_items)
 
