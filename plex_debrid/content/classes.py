@@ -1164,6 +1164,7 @@ class media:
         if self.type in ["movie", "show"] and ((not hasattr(self, "title") or self.title == "" or self.title == None) or (not hasattr(self, "year") or self.year == None or self.year == "")):
             ui_print(
                 "error: media item has no title or release year. This unknown movie/show might not be released yet.")
+            print(vars(self))
             return
         scraper.services.overwrite = []
         EIDS = []
