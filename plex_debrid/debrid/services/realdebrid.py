@@ -180,8 +180,6 @@ def download(element, stream=True, query='', force=False):
     # Extract data for CSV
     data = extract_element_data(element)
     cached = element.Releases
-    print("Cached: ")
-    print(cached)
     if query == '':
         query = element.deviation()
     wanted = [query]
@@ -212,6 +210,8 @@ def download(element, stream=True, query='', force=False):
                                     torrent_id = str(response.id)
                             except Exception as e:
                                 print(f'[{str(datetime.datetime.now().strftime("%d/%m/%y %H:%M:%S"))}] [realdebrid] error: could not add magnet for release. ({e})')
+                                print("Could not add magnet simplename")
+                                print(response.text)
                                 if hasattr(e, 'response') and hasattr(e.response, 'status_code'):
                                     if e.response.status_code == 429:
                                         print(f'[{str(datetime.datetime.now().strftime("%d/%m/%y %H:%M:%S"))}] [realdebrid] Rate limit exceeded')
@@ -270,6 +270,8 @@ def download(element, stream=True, query='', force=False):
                                 else:
                                     print(f'[{str(datetime.datetime.now().strftime("%d/%m/%y %H:%M:%S"))}] [realdebrid] {response.error}')
                 ui_print('[realdebrid] error: no streamable version could be selected for release: ' + release.title)
+                print("No Streamable")
+                print(response.text)
                 return False
             else:
                 try:
